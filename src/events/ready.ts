@@ -1,6 +1,5 @@
 import { Event } from '../structures/Event';
 
-export default new Event('ready', (client) => {
-	client.registerCommands(process.env.GUILD_ID);
+export default new Event('ready', () => {
 	console.log('Bot is online');
 });

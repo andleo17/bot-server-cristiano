@@ -9,32 +9,39 @@ import fs from 'fs/promises';
 import path from 'path';
 import { CommandType } from './Command';
 import { Event } from './Event';
+import { MessageType } from './Message';
 
 export class MyBot extends Client {
 	public commands: Collection<string, CommandType>;
 	private slashCommands: ApplicationCommandDataResolvable[];
+	public messages: MessageType[];
 
 	public constructor(options: ClientOptions) {
 		super(options);
 		this.commands = new Collection();
 		this.slashCommands = [];
+		this.messages = [];
 	}
 
 	public start(): void {
 		this.readCommands();
 		this.readEvents();
+		this.readMessages();
 		this.login(process.env.BOT_TOKEN);
 	}
 
 	public async registerCommands(guildId?: string): Promise<void> {
 		try {
+			await this.login(process.env.BOT_TOKEN);
+			await this.readCommands();
 			if (guildId) {
-				this.guilds.cache.get(guildId)?.commands.set(this.slashCommands);
+				await this.guilds.cache.get(guildId)?.commands.set(this.slashCommands);
 				console.log(`Registrando comandos en: ${guildId}`);
 			} else {
-				this.application.commands.set(this.slashCommands);
+				await this.application.commands.set(this.slashCommands);
 				console.log('Registrando comandos globales');
 			}
+			this.destroy();
 		} catch (error) {
 			console.error(error);
 		}
@@ -74,6 +81,22 @@ export class MyBot extends Client {
 					path.join(eventPath, filePath)
 				);
 				this.on(event.name, (...args) => event.run(this, ...args));
+			}
+		} catch (error) {
+			console.error(error);
+		}
+	}
+
+	private async readMessages(): Promise<void> {
+		try {
+			const messagePath = path.join(__dirname, '../messages/');
+			const messageFiles = await fs.readdir(messagePath);
+			for (const filePath of messageFiles) {
+				const message: MessageType = await this.importFile(
+					path.join(messagePath, filePath)
+				);
+				if (!message.text) return;
+				this.messages.push(message);
 			}
 		} catch (error) {
 			console.error(error);
