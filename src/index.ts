@@ -4,5 +4,9 @@ import { Intents } from 'discord.js';
 import { MyBot } from './structures/MyBot';
 
 new MyBot({
-	intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES],
+	intents: [
+		Intents.FLAGS.GUILDS,
+		Intents.FLAGS.GUILD_MESSAGES,
+		Intents.FLAGS.GUILD_VOICE_STATES,
+	],
 }).start();

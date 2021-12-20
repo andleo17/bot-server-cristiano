@@ -10,5 +10,12 @@ export default new Event(
 
 			command.run({ client, interaction });
 		}
+
+		if (interaction.isButton()) {
+			const action = client.customActions.get(interaction.customId);
+			if (!action) return console.error('Acción no contemplada');
+
+			action.run({ client, interaction });
+		}
 	}
 );

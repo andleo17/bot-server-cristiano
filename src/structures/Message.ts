@@ -1,4 +1,4 @@
-import { Message, MessageComponentInteraction } from 'discord.js';
+import { Message } from 'discord.js';
 import { MyBot } from './MyBot';
 
 type RunOptions = {

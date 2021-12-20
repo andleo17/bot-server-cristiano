@@ -7,6 +7,7 @@ import {
 } from 'discord.js';
 import fs from 'fs/promises';
 import path from 'path';
+import { ActionType } from './Action';
 import { CommandType } from './Command';
 import { Event } from './Event';
 import { MessageType } from './Message';
@@ -15,18 +16,21 @@ export class MyBot extends Client {
 	public commands: Collection<string, CommandType>;
 	private slashCommands: ApplicationCommandDataResolvable[];
 	public messages: MessageType[];
+	public customActions: Collection<string, ActionType>;
 
 	public constructor(options: ClientOptions) {
 		super(options);
 		this.commands = new Collection();
 		this.slashCommands = [];
 		this.messages = [];
+		this.customActions = new Collection();
 	}
 
 	public start(): void {
 		this.readCommands();
 		this.readEvents();
 		this.readMessages();
+		this.readActions();
 		this.login(process.env.BOT_TOKEN);
 	}
 
@@ -97,6 +101,25 @@ export class MyBot extends Client {
 				);
 				if (!message.text) return;
 				this.messages.push(message);
+			}
+		} catch (error) {
+			console.error(error);
+		}
+	}
+
+	private async readActions(): Promise<void> {
+		try {
+			const actionsPath = path.join(__dirname, '../actions/');
+			const actionFolders = await fs.readdir(actionsPath);
+			for (const actionFiles of actionFolders) {
+				const files = await fs.readdir(path.join(actionsPath, actionFiles));
+				for (const file of files) {
+					const action: ActionType = await this.importFile(
+						path.join(actionsPath, actionFiles, file)
+					);
+					if (!action.id) return;
+					this.customActions.set(action.id, action);
+				}
 			}
 		} catch (error) {
 			console.error(error);
