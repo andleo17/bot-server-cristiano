@@ -13,10 +13,10 @@ import { Event } from './Event';
 import { MessageType } from './Message';
 
 export class MyBot extends Client {
-	public commands: Collection<string, CommandType>;
+	private commands: Collection<string, CommandType>;
 	private slashCommands: ApplicationCommandDataResolvable[];
-	public messages: MessageType[];
-	public customActions: Collection<string, ActionType>;
+	private messages: MessageType[];
+	private customActions: Collection<string, ActionType>;
 
 	public constructor(options: ClientOptions) {
 		super(options);
@@ -49,6 +49,29 @@ export class MyBot extends Client {
 		} catch (error) {
 			console.error(error);
 		}
+	}
+
+	public getCommandHandler(name: string): CommandType {
+		return this.commands.get(name);
+	}
+
+	public getMessageHandler(text: string): MessageType {
+		return this.messages.find((m) => {
+			let tranformedMessage = text;
+			if (m.ignoreCase) {
+				tranformedMessage = tranformedMessage.toLowerCase();
+				m.text = m.text.toLowerCase();
+			}
+			if (!m.exact) {
+				tranformedMessage = tranformedMessage.replaceAll(' ', '');
+			}
+
+			return tranformedMessage.includes(m.text);
+		});
+	}
+
+	public getActionHandler(id: string): ActionType {
+		return this.customActions.get(id);
 	}
 
 	private async importFile(filePath: string) {
