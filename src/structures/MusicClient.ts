@@ -38,6 +38,10 @@ export default class MusicClient {
 		return this.client;
 	}
 
+	public getCurrentSong() {
+		return this.currentSong;
+	}
+
 	public connectToVoiceChannel(channelId: string) {
 		if (!this.connection) {
 			const bot = MyBot.getInstance();
@@ -68,7 +72,7 @@ export default class MusicClient {
 
 	public async searchSong(title: string): Promise<VideoSearchResult> {
 		try {
-			const foundVideos = await ytSearch(title);
+			const foundVideos = await ytSearch({ search: title, category: 'music' });
 			return foundVideos.videos.shift();
 		} catch (error) {
 			console.log(error);
@@ -132,9 +136,9 @@ export default class MusicClient {
 				.setStyle('DANGER')
 				.setCustomId('MUSIC_STOP'),
 			new MessageButton()
-				.setLabel('Lista')
+				.setLabel('Mostrar letra')
 				.setStyle('SECONDARY')
-				.setCustomId('MUSIC_SHOWQUEUE')
+				.setCustomId('MUSIC_SHOWLYRICS')
 		);
 	}
 

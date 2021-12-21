@@ -4,6 +4,7 @@ declare global {
 			BOT_TOKEN: string;
 			GUILD_ID: string;
 			NODE_ENV: 'production' | 'development';
+			GENIUS_LYRICS_API_KEY: string;
 		}
 	}
 }

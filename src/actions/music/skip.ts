@@ -22,6 +22,8 @@ export default new Action({
 			setTimeout(() => {
 				playerResponseEmbedMessage.delete();
 			}, 5 * 1000); // Borra el mensaje después de 5 segundos
+
+			interaction.deferUpdate();
 		} catch (error) {
 			console.error(error);
 		}

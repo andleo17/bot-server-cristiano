@@ -56,7 +56,7 @@ export default new Command({
 				.addField('Nombre', song.title)
 				.addField('Duración', song.duration.timestamp)
 				.setFooter(
-					`Añadido por: ${interaction.member.nickname}`,
+					`Añadido por: ${interaction.member.displayName}`,
 					interaction.member.displayAvatarURL()
 				);
 
