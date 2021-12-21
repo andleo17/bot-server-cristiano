@@ -5,10 +5,10 @@
 	"main": "index.js",
 	"scripts": {
 		"dev": "ts-node-dev ./src/index.ts",
-		"build": "tsc",
-		"serve": "node ./dist/src/index.js",
-		"start": "npm run build && npm run serve",
-		"commands": "ts-node-dev ./src/utils/registerCommands.ts"
+		"tsc": "tsc",
+		"start": "node ./dist/src/index.js",
+		"commands": "ts-node-dev ./src/utils/registerCommands.ts",
+		"postinstall": "npm run tsc"
 	},
 	"repository": {
 		"type": "git",
