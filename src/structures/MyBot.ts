@@ -13,17 +13,29 @@ import { Event } from './Event';
 import { MessageType } from './Message';
 
 export class MyBot extends Client {
+	private static client: MyBot;
 	private commands: Collection<string, CommandType>;
 	private slashCommands: ApplicationCommandDataResolvable[];
 	private messages: MessageType[];
 	private customActions: Collection<string, ActionType>;
 
-	public constructor(options: ClientOptions) {
+	private constructor(options: ClientOptions) {
 		super(options);
 		this.commands = new Collection();
 		this.slashCommands = [];
 		this.messages = [];
 		this.customActions = new Collection();
+	}
+
+	public static getInstance(options?: ClientOptions): MyBot {
+		if (!this.client) {
+			if (!!options) {
+				this.client = new MyBot(options);
+			} else {
+				throw new Error('Necesitas pasarle las opciones al bot.');
+			}
+		}
+		return this.client;
 	}
 
 	public start(): void {

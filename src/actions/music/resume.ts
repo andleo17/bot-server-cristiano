@@ -1,6 +1,6 @@
-import { getVoiceConnection, VoiceConnectionStatus } from '@discordjs/voice';
 import { MessageButton } from 'discord.js';
 import { Action } from '../../structures/Action';
+import MusicClient from '../../structures/MusicClient';
 
 export default new Action({
 	id: 'MUSIC_RESUME',
@@ -13,15 +13,13 @@ export default new Action({
 				.setCustomId('MUSIC_PAUSE');
 
 			const newPlayerRow = playerRow.spliceComponents(0, 1, pauseButton);
-			const playerVoiceChannel = getVoiceConnection(interaction.guild.id);
-			if (playerVoiceChannel.state.status === VoiceConnectionStatus.Ready) {
-				const player = playerVoiceChannel.state.subscription.player;
-				player.unpause();
-				interaction.update({
-					embeds: interaction.message.embeds,
-					components: [newPlayerRow],
-				});
-			}
+
+			MusicClient.getInstance().resume();
+
+			interaction.update({
+				embeds: interaction.message.embeds,
+				components: [newPlayerRow],
+			});
 		} catch (error) {
 			console.error(error);
 		}

@@ -1,15 +1,12 @@
-import { getVoiceConnection } from '@discordjs/voice';
 import { MessageEmbed } from 'discord.js';
 import { Action } from '../../structures/Action';
+import MusicClient from '../../structures/MusicClient';
 
 export default new Action({
 	id: 'MUSIC_STOP',
 	run: async ({ interaction }) => {
 		try {
-			const playerVoiceChannel = getVoiceConnection(interaction.guild.id);
-			playerVoiceChannel.destroy();
-			await interaction.message.delete();
-
+			MusicClient.getInstance().stop();
 			const playerDestroyedEmbed = new MessageEmbed().setTitle(
 				'Reproductor apagado. Ya safé'
 			);

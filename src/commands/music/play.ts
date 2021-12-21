@@ -1,41 +1,6 @@
-import ytdl from 'discord-ytdl-core';
-import ytSearch, { VideoSearchResult } from 'yt-search';
-import {
-	StreamType,
-	createAudioPlayer,
-	createAudioResource,
-	joinVoiceChannel,
-	AudioPlayerStatus,
-} from '@discordjs/voice';
+import { MessageEmbed } from 'discord.js';
 import { Command } from '../../structures/Command';
-import { MessageActionRow, MessageButton, MessageEmbed } from 'discord.js';
-import { formatSeconds } from '../../utils/formatSeconds';
-
-async function searchSong(song: string) {
-	try {
-		const foundVideos = await ytSearch(song);
-		return foundVideos.videos.shift();
-	} catch (error) {
-		console.log(error);
-		return null;
-	}
-}
-
-function listQueue(queue: VideoSearchResult[]): string {
-	return queue
-		.map((q, i) => {
-			const title =
-				q.title.length <= 35 ? q.title : q.title.substring(0, 35) + '...';
-			const author =
-				q.author.name.length <= 35
-					? q.author.name
-					: q.author.name.substring(0, 35) + '...';
-			return `**[${i + 1}]** [${title}](${q.url}) - [${author}](${
-				q.author.url
-			}) [${q.duration.timestamp}]`;
-		})
-		.join('\n');
-}
+import MusicClient from '../../structures/MusicClient';
 
 export default new Command({
 	name: 'play',
@@ -47,6 +12,13 @@ export default new Command({
 			description: 'Ingresa el título de la canción o una URL',
 			required: true,
 		},
+		{
+			type: 'BOOLEAN',
+			name: 'ahora',
+			description:
+				'Indica si quieres que suene ahora mismo o que se agregue a la cola',
+			required: false,
+		},
 	],
 	run: async ({ interaction }) => {
 		try {
@@ -56,82 +28,41 @@ export default new Command({
 					content: 'Debes conectarte a un canal de voz pe ctmr',
 					ephemeral: true,
 				});
-
+			const music = MusicClient.getInstance();
 			const songName = interaction.options.getString('canción');
-			const video = await searchSong(songName);
-			if (!video) {
+			const playNow = interaction.options.getBoolean('ahora');
+			const song = await music.searchSong(songName);
+
+			if (!song) {
 				return interaction.reply({
 					content: `No se encontraron para *${songName}*`,
 					ephemeral: true,
 				});
 			}
 
-			const stream = ytdl(video.url, {
-				filter: 'audioonly',
-				opusEncoded: true,
-				encoderArgs: ['-af', 'bass=g=2'],
-			});
-			const connection = joinVoiceChannel({
-				channelId: voiceChannel.id,
-				guildId: interaction.guildId,
-				adapterCreator: interaction.guild.voiceAdapterCreator,
-			});
+			music.connectToVoiceChannel(voiceChannel.id);
+			const messagePlayer = await music.addSong(song, playNow);
+			const player = music.generatePlayer();
 
-			const resource = createAudioResource(stream, {
-				inputType: StreamType.Opus,
-			});
-			const player = createAudioPlayer();
+			if (!messagePlayer) {
+				const message = await interaction.channel.send(player);
+				music.setMessagePlayer(message);
+			} else {
+				messagePlayer.edit(player);
+			}
 
-			player.play(resource);
-			connection.subscribe(player);
-
-			const pseudoQueue: VideoSearchResult[] = [];
-			pseudoQueue.push(video);
-			const queueDuration = pseudoQueue.reduce(
-				(total, q) => total + q.duration.seconds,
-				0
-			);
-
-			const playerRowButtons = new MessageActionRow().addComponents(
-				new MessageButton()
-					.setLabel('Pausar')
-					.setStyle('SUCCESS')
-					.setCustomId('MUSIC_PAUSE'),
-				new MessageButton()
-					.setLabel('Saltar')
-					.setStyle('PRIMARY')
-					.setCustomId('MUSIC_SKIP'),
-				new MessageButton()
-					.setLabel('Detener')
-					.setStyle('DANGER')
-					.setCustomId('MUSIC_STOP'),
-				new MessageButton()
-					.setLabel('Lista')
-					.setStyle('SECONDARY')
-					.setCustomId('MUSIC_SHOWQUEUE')
-			);
-
-			const playerEmbed = new MessageEmbed()
-				.setTitle('Lista de reproducción 🎵')
-				.setDescription(listQueue(pseudoQueue))
-				.setColor('DARK_BLUE')
+			const songAddedEmbed = new MessageEmbed()
+				.setTitle('Canción agregada correctamente')
+				.addField('Nombre', song.title)
+				.addField('Duración', song.duration.timestamp)
 				.setFooter(
-					`Agregado por: ${interaction.member.nickname}`,
-					interaction.member.avatarURL()
-				)
-				.addFields([
-					{
-						name: 'Duración total',
-						value: formatSeconds(queueDuration),
-					},
-				]);
+					`Añadido por: ${interaction.member.nickname}`,
+					interaction.member.displayAvatarURL()
+				);
 
 			interaction.reply({
-				embeds: [playerEmbed],
-				components: [playerRowButtons],
+				embeds: [songAddedEmbed],
 			});
-
-			player.on(AudioPlayerStatus.Idle, () => connection.destroy());
 		} catch (error) {
 			console.error(error);
 		}
