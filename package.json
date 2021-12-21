@@ -6,7 +6,7 @@
 	"scripts": {
 		"dev": "ts-node-dev ./src/index.ts",
 		"tsc": "tsc",
-		"start": "node ./dist/src/index.js",
+		"start": "node ./dist/index.js",
 		"commands": "ts-node-dev ./src/utils/registerCommands.ts",
 		"postinstall": "npm run tsc"
 	},
