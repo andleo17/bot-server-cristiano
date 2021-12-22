@@ -1,3 +1,4 @@
+import { PrismaClient } from '@prisma/client';
 import {
 	ApplicationCommandDataResolvable,
 	Client,
@@ -18,19 +19,24 @@ export class MyBot extends Client {
 	private slashCommands: ApplicationCommandDataResolvable[];
 	private messages: MessageType[];
 	private customActions: Collection<string, ActionType>;
+	public db: PrismaClient;
 
-	private constructor(options: ClientOptions) {
+	private constructor(options: ClientOptions, prisma: PrismaClient) {
 		super(options);
 		this.commands = new Collection();
 		this.slashCommands = [];
 		this.messages = [];
 		this.customActions = new Collection();
+		this.db = prisma;
 	}
 
-	public static getInstance(options?: ClientOptions): MyBot {
+	public static getInstance(
+		options?: ClientOptions,
+		prisma?: PrismaClient
+	): MyBot {
 		if (!this.client) {
 			if (!!options) {
-				this.client = new MyBot(options);
+				this.client = new MyBot(options, prisma);
 			} else {
 				throw new Error('Necesitas pasarle las opciones al bot.');
 			}
