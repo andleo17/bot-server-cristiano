@@ -8,7 +8,7 @@ export default new Action({
 		try {
 			MusicClient.getInstance().stop();
 
-			await interaction.channel.send({
+			const conchasumareMessage = await interaction.channel.send({
 				content: `Este conchasumare paró la bulla: ${interaction.member}`,
 			});
 
@@ -23,6 +23,10 @@ export default new Action({
 			setTimeout(() => {
 				playerDestroyedEmbedSend.delete();
 			}, 5 * 1000); // Borra el mensaje después de 5 segundos
+
+			setTimeout(() => {
+				conchasumareMessage.delete();
+			}, 10 * 1000); // Borra el mensaje después de 10 segundos
 		} catch (error) {
 			console.error(error);
 		}
