@@ -1,4 +1,4 @@
-import { MessageEmbed } from 'discord.js';
+import { Message, MessageEmbed } from 'discord.js';
 import { Command } from '../../structures/Command';
 import MusicClient from '../../structures/MusicClient';
 
@@ -20,8 +20,10 @@ export default new Command({
 			required: false,
 		},
 	],
-	run: async ({ interaction }) => {
+	run: async ({ client, interaction }) => {
 		try {
+			await interaction.deferReply();
+
 			const voiceChannel = interaction.member.voice.channel;
 			if (!voiceChannel)
 				return interaction.reply({
@@ -45,7 +47,22 @@ export default new Command({
 			const player = music.generatePlayer();
 
 			if (!messagePlayer) {
-				const message = await interaction.channel.send(player);
+				const musicChannel = await client.db.musicConfig.findFirst();
+				let message: Message;
+				if (musicChannel) {
+					const channelMusicInGuild = await interaction.guild.channels.fetch(
+						musicChannel.channelId
+					);
+
+					if (!channelMusicInGuild.isText())
+						return interaction.editReply({
+							content: '¡Error! El canal configurado no es un canal de texto',
+						});
+
+					message = await channelMusicInGuild.send(player);
+				} else {
+					message = await interaction.channel.send(player);
+				}
 				music.setMessagePlayer(message);
 			} else {
 				messagePlayer.edit(player);
@@ -60,11 +77,12 @@ export default new Command({
 					interaction.member.displayAvatarURL()
 				);
 
-			interaction.reply({
+			interaction.editReply({
 				embeds: [songAddedEmbed],
 			});
 		} catch (error) {
 			console.error(error);
+			interaction.editReply('Hubo un error al ejecutar el comando');
 		}
 	},
 });

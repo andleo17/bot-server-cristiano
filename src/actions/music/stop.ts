@@ -7,6 +7,11 @@ export default new Action({
 	run: async ({ interaction }) => {
 		try {
 			MusicClient.getInstance().stop();
+
+			await interaction.channel.send({
+				content: `Este conchasumare paró la bulla: ${interaction.member}`,
+			});
+
 			const playerDestroyedEmbed = new MessageEmbed().setTitle(
 				'Reproductor apagado. Ya safé'
 			);

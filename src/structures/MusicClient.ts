@@ -149,17 +149,25 @@ export default class MusicClient {
 		};
 	}
 
-	private play(song: VideoSearchResult) {
-		const stream = ytdl(song.url, {
-			filter: 'audioonly',
-			opusEncoded: true,
-			encoderArgs: ['-af', 'bass=g=2'],
-		});
+	private async play(song: VideoSearchResult) {
+		try {
+			const stream = ytdl(song.url, {
+				filter: 'audioonly',
+				opusEncoded: true,
+				encoderArgs: ['-af', 'bass=g=2'],
+				highWaterMark: 1 << 25,
+			});
 
-		const resource = createAudioResource(stream, {
-			inputType: StreamType.Opus,
-		});
-		this.player.play(resource);
+			const resource = createAudioResource(stream, {
+				inputType: StreamType.Opus,
+			});
+			this.player.play(resource);
+		} catch (error) {
+			console.error(error);
+			await this.messagePlayer.edit({
+				content: `Ocurrió un error al reproducir la canción: ${error.message}`,
+			});
+		}
 	}
 
 	public pause() {
