@@ -3,7 +3,7 @@ import { Command } from '../../structures/Command';
 import { pickRandomAnimeGif } from '../../utils/tenorAPI';
 
 export default new Command({
-	name: 'kiss',
+	name: 'beso',
 	description: 'Dale un besito a alguien del server uwu.',
 	options: [
 		{
@@ -16,12 +16,21 @@ export default new Command({
 	run: async ({ interaction }) => {
 		const userKiss = interaction.options.getUser('usuario');
 		const user = interaction.member;
+		let kissGif: string;
+		let kissEmbed: MessageEmbed;
 
-		const kissGif = await pickRandomAnimeGif('kiss');
+		if (userKiss.id === user.id) {
+			kissGif = await pickRandomAnimeGif('cry');
+			kissEmbed = new MessageEmbed()
+				.setDescription(`**${user} se quiere dar un beso solo xD**`)
+				.setImage(kissGif);
+		} else {
+			kissGif = await pickRandomAnimeGif('kiss');
 
-		const kissEmbed = new MessageEmbed()
-			.setDescription(`**${user} le da un besito a ${userKiss}**`)
-			.setImage(kissGif);
+			kissEmbed = new MessageEmbed()
+				.setDescription(`**${user} le da un besito a ${userKiss}**`)
+				.setImage(kissGif);
+		}
 
 		await interaction.reply({
 			embeds: [kissEmbed],
