@@ -6,8 +6,9 @@
 	"scripts": {
 		"dev": "ts-node-dev ./src/index.ts",
 		"tsc": "tsc",
-		"start": "node ./dist/index.js",
+		"start": "npm run commands:prod && node ./dist/index.js",
 		"commands": "ts-node ./src/utils/registerCommands.ts",
+		"commands:prod": "node ./dist/utils/registerCommands.js",
 		"postinstall": "npm run tsc"
 	},
 	"repository": {
