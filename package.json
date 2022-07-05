@@ -23,7 +23,7 @@
 	},
 	"homepage": "https://github.com/andleo17/bot-server-cristiano#readme",
 	"dependencies": {
-		"@discordjs/opus": "^0.5.3",
+		"@discordjs/opus": "^0.8.0",
 		"@discordjs/voice": "^0.7.5",
 		"@prisma/client": "^3.7.0",
 		"axios": "^0.24.0",
