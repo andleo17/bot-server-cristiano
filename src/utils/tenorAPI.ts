@@ -6,14 +6,18 @@ const tenor = axios.create({
 });
 
 async function getAnimeGifs(search?: string): Promise<string[]> {
-	const { data } = await tenor.get('search', {
-		params: {
-			key: process.env.TENOR_KEY,
-			q: `anime${search && '-' + search}`,
-		},
-	});
+	try {
+		const { data } = await tenor.get('search', {
+			params: {
+				key: process.env.TENOR_KEY,
+				q: `anime${search && '-' + search}`,
+			},
+		});
 
-	return data.results.map((d: any) => d.media[0]['mediumgif']['url']);
+		return data.results.map((d: any) => d.media[0]['mediumgif']['url']);
+	} catch (error) {
+		console.error(error);
+	}
 }
 
 export async function pickRandomAnimeGif(search?: string): Promise<string> {

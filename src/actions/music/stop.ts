@@ -1,12 +1,12 @@
 import { MessageEmbed } from 'discord.js';
 import { Action } from '../../structures/Action';
-import MusicClient from '../../structures/MusicClient';
 
 export default new Action({
 	id: 'MUSIC_STOP',
-	run: async ({ interaction }) => {
+	run: async ({ client, interaction }) => {
 		try {
-			MusicClient.getInstance().stop();
+			await client.distube.messagePlayer.delete();
+			await client.distube.stop(process.env.GUILD_ID);
 
 			const conchasumareMessage = await interaction.channel.send({
 				content: `Este conchasumare paró la bulla: ${interaction.member}`,

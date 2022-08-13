@@ -12,6 +12,13 @@ import { ActionType } from './Action';
 import { CommandType } from './Command';
 import { Event } from './Event';
 import { MessageType } from './Message';
+import MyDistubeClient from './MusicClient';
+
+type MyBotOptions = {
+	discordOptions?: ClientOptions;
+	prisma?: PrismaClient;
+	withPlugins?: boolean;
+};
 
 export class MyBot extends Client {
 	private static client: MyBot;
@@ -20,23 +27,30 @@ export class MyBot extends Client {
 	private messages: MessageType[];
 	private customActions: Collection<string, ActionType>;
 	public db: PrismaClient;
+	public distube: MyDistubeClient;
 
-	private constructor(options: ClientOptions, prisma: PrismaClient) {
-		super(options);
+	private constructor({ discordOptions, prisma, withPlugins }: MyBotOptions) {
+		super(discordOptions);
 		this.commands = new Collection();
 		this.slashCommands = [];
 		this.messages = [];
 		this.customActions = new Collection();
-		this.db = prisma;
+		if (withPlugins) {
+			this.db = prisma;
+			this.distube = new MyDistubeClient(this, {
+				searchSongs: 1,
+				leaveOnStop: true,
+				leaveOnEmpty: true,
+				leaveOnFinish: true,
+				updateYouTubeDL: false,
+			});
+		}
 	}
 
-	public static getInstance(
-		options?: ClientOptions,
-		prisma?: PrismaClient
-	): MyBot {
+	public static getInstance(options?: MyBotOptions): MyBot {
 		if (!this.client) {
-			if (!!options) {
-				this.client = new MyBot(options, prisma);
+			if (!!options.discordOptions) {
+				this.client = new MyBot(options);
 			} else {
 				throw new Error('Necesitas pasarle las opciones al bot.');
 			}
@@ -60,8 +74,11 @@ export class MyBot extends Client {
 				await this.guilds.cache.get(guildId)?.commands.set(this.slashCommands);
 				console.log(`Registrando comandos en: ${guildId}`);
 			} else {
-				await this.application.commands.set(this.slashCommands);
-				console.log('Registrando comandos globales');
+				const guilds = this.guilds.cache.map((g) => g);
+				for (const g of guilds) {
+					await g.commands.set(this.slashCommands);
+					console.log(`Registrando comandos en: ${g.name}`);
+				}
 			}
 			this.destroy();
 		} catch (error) {
@@ -74,6 +91,7 @@ export class MyBot extends Client {
 	}
 
 	public getMessageHandler(text: string): MessageType {
+		return null;
 		return this.messages.find((m) => {
 			let tranformedMessage = text;
 			if (m.ignoreCase) {

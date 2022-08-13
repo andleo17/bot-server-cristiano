@@ -4,7 +4,8 @@ export default new Command({
 	name: 'ping',
 	description: 'replies with pong',
 	run: async ({ interaction }) => {
-		interaction.reply('pong');
-		interaction.member;
+
+    const ping = new Date().getTime() - interaction.createdTimestamp;
+    interaction.reply((ping - 3500).toString());
 	},
 });

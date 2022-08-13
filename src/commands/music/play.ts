@@ -1,6 +1,5 @@
-import { Message, MessageEmbed } from 'discord.js';
+import { MessageEmbed, TextChannel } from 'discord.js';
 import { Command } from '../../structures/Command';
-import MusicClient from '../../structures/MusicClient';
 
 export default new Command({
 	name: 'play',
@@ -22,6 +21,7 @@ export default new Command({
 	],
 	run: async ({ client, interaction }) => {
 		try {
+			const { db, distube } = client;
 			await interaction.deferReply();
 
 			const voiceChannel = interaction.member.voice.channel;
@@ -30,28 +30,33 @@ export default new Command({
 					content: 'Debes conectarte a un canal de voz pe ctmr',
 					ephemeral: true,
 				});
-			const music = MusicClient.getInstance();
+
 			const songName = interaction.options.getString('canción');
 			const playNow = interaction.options.getBoolean('ahora');
-			const song = await music.searchSong(songName);
+			const searchResults = await distube.search(songName);
 
-			if (!song) {
+			if (searchResults.length === 0) {
 				return interaction.reply({
 					content: `No se encontraron para *${songName}*`,
 					ephemeral: true,
 				});
 			}
 
-			music.connectToVoiceChannel(voiceChannel.id);
-			const messagePlayer = await music.addSong(song, playNow);
-			const player = music.generatePlayer();
+			const song = searchResults[0];
+
+			await distube.playVoiceChannel(voiceChannel, song);
+
+			const messagePlayer = distube.messagePlayer;
+			const player = distube.getPlayer(interaction.guildId);
 
 			if (!messagePlayer) {
-				const musicChannel = await client.db.musicConfig.findFirst();
-				let message: Message;
-				if (musicChannel) {
+				const guildConfig = await db.guildConfig.findUnique({
+					where: { guildId: interaction.guildId },
+				});
+				let musicChannelInGuild: TextChannel;
+				if (guildConfig) {
 					const channelMusicInGuild = await interaction.guild.channels.fetch(
-						musicChannel.channelId
+						guildConfig.musicChannel
 					);
 
 					if (!channelMusicInGuild.isText())
@@ -59,25 +64,34 @@ export default new Command({
 							content: '¡Error! El canal configurado no es un canal de texto',
 						});
 
-					message = await channelMusicInGuild.send(player);
+					if (channelMusicInGuild.type === 'GUILD_NEWS')
+						return interaction.editReply(
+							'¡Error! El canal configurado en un canal de noticias'
+						);
+
+					musicChannelInGuild = channelMusicInGuild;
 				} else {
-					message = await interaction.channel.send(player);
+					musicChannelInGuild =
+						interaction.channel.isText() &&
+						interaction.channel.type === 'GUILD_TEXT' &&
+						interaction.channel;
 				}
-				music.setMessagePlayer(message);
+
+				distube.messagePlayer = await musicChannelInGuild.send(player);
 			} else {
 				messagePlayer.edit(player);
 			}
 
 			const songAddedEmbed = new MessageEmbed()
 				.setTitle('Canción agregada correctamente')
-				.addField('Nombre', song.title)
-				.addField('Duración', song.duration.timestamp)
+				.addField('Nombre', song.name)
+				.addField('Duración', song.formattedDuration)
 				.setFooter(
 					`Añadido por: ${interaction.member.displayName}`,
 					interaction.member.displayAvatarURL()
 				);
 
-			interaction.editReply({
+			await interaction.editReply({
 				embeds: [songAddedEmbed],
 			});
 		} catch (error) {

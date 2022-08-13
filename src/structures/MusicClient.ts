@@ -1,118 +1,69 @@
 import {
-	AudioPlayer,
-	AudioPlayerStatus,
-	createAudioPlayer,
-	createAudioResource,
-	DiscordGatewayAdapterCreator,
-	joinVoiceChannel,
-	StreamType,
-	VoiceConnection,
-} from '@discordjs/voice';
-import {
-	CommandInteraction,
 	Message,
 	MessageActionRow,
 	MessageButton,
 	MessageEmbed,
 	MessageOptions,
 } from 'discord.js';
-import ytSearch, { VideoSearchResult } from 'yt-search';
-import ytdl from 'discord-ytdl-core';
+import DisTube, { DisTubeOptions, Queue, Song } from 'distube';
 import { formatSeconds } from '../utils/formatSeconds';
 import { MyBot } from './MyBot';
 
-export default class MusicClient {
-	private static client: MusicClient;
-	private queue: VideoSearchResult[];
-	private currentSong: VideoSearchResult;
-	private player: AudioPlayer;
-	private connection: VoiceConnection;
-	private messagePlayer: Message;
+export default class MyDistubeClient extends DisTube {
+	private mPlayer: Message;
 
-	private constructor() {}
+	public constructor(discordClient: MyBot, options?: DisTubeOptions) {
+		super(discordClient, options);
 
-	public static getInstance(): MusicClient {
-		if (!this.client) {
-			this.client = new MusicClient();
-		}
-		return this.client;
+		this.on('error', (_, e) => {
+			console.error(e);
+		});
+
+		this.on('playSong', (_, e) => {
+			console.log('Reproduciendo:', e.name);
+		});
 	}
 
-	public getCurrentSong() {
-		return this.currentSong;
+	public set messagePlayer(v: Message) {
+		if (v.inGuild()) this.mPlayer = v;
 	}
 
-	public connectToVoiceChannel(channelId: string) {
-		if (!this.connection) {
-			const bot = MyBot.getInstance();
-			const guildId = process.env.GUILD_ID;
-			const guild = bot.guilds.cache.find((g) => g.id === guildId);
-
-			this.connection = joinVoiceChannel({
-				channelId,
-				guildId,
-				adapterCreator: guild.voiceAdapterCreator,
-			});
-
-			this.player = createAudioPlayer();
-
-			this.connection.subscribe(this.player);
-
-			this.player.on(AudioPlayerStatus.Idle, () => {
-				this.skip();
-			});
-		}
+	public get messagePlayer(): Message {
+		return this.mPlayer;
 	}
 
-	public disconnect() {
-		this.stop();
-		this.connection.destroy();
-		MusicClient.destroy();
+	public getPlayer(guildId: string): MessageOptions {
+		const queue = this.getQueue(guildId);
+		return {
+			embeds: [this.generatePlayerEmbed(queue)],
+			components: [this.generatePlayerButtons()],
+		};
 	}
 
-	public async searchSong(title: string): Promise<VideoSearchResult> {
-		try {
-			const foundVideos = await ytSearch({ search: title, category: 'music' });
-			return foundVideos.videos.shift();
-		} catch (error) {
-			console.log(error);
-			return null;
-		}
-	}
-
-	public listQueue(): string {
+	private listQueue(queue: Queue): string {
 		const maxLength = 45;
-		return this.queue
+		return queue.songs
 			.map((q, i) => {
 				const title =
-					q.title.length <= maxLength
-						? q.title
-						: q.title.substring(0, maxLength) + '...';
-				return `**[${i + 1}]** [${title}](${q.url}) [${q.timestamp}]`;
+					q.name.length <= maxLength
+						? q.name
+						: q.name.substring(0, maxLength) + '...';
+				return `**[${i + 1}]** [${title}](${q.url}) [${q.formattedDuration}]`;
 			})
 			.join('\n');
 	}
 
-	public getQueue(): VideoSearchResult[] {
-		return this.queue;
+	private generateCurrentSongFormat(song: Song): string {
+		return song.name;
 	}
 
-	public setMessagePlayer(messagePlayer: Message) {
-		if (messagePlayer.inGuild()) this.messagePlayer = messagePlayer;
-	}
-
-	private generateCurrentSongFormat(): string {
-		const song = this.currentSong;
-		return song.title;
-	}
-
-	private generatePlayerEmbed(): MessageEmbed {
-		const queueDuration = this.queue.reduce((total, q) => total + q.seconds, 0);
+	private generatePlayerEmbed(queue: Queue): MessageEmbed {
+		const queueDuration = queue.duration;
 		return new MessageEmbed()
 			.setTitle('Lista de reproducción 🎵')
-			.setDescription(this.listQueue())
+			.setDescription(this.listQueue(queue))
 			.setColor('DARK_BLUE')
-			.addField('Sonando ahora', this.generateCurrentSongFormat())
+			.addField('Sonando ahora', this.generateCurrentSongFormat(queue.songs[0]))
 			.addFields([
 				{
 					name: 'Duración total',
@@ -140,106 +91,5 @@ export default class MusicClient {
 				.setStyle('SECONDARY')
 				.setCustomId('MUSIC_SHOWLYRICS')
 		);
-	}
-
-	public generatePlayer(): MessageOptions {
-		return {
-			embeds: [this.generatePlayerEmbed()],
-			components: [this.generatePlayerButtons()],
-		};
-	}
-
-	private async play(song: VideoSearchResult) {
-		try {
-			const stream = ytdl(song.url, {
-				filter: 'audioonly',
-				opusEncoded: true,
-				encoderArgs: ['-af', 'bass=g=2'],
-				highWaterMark: 1 << 25,
-			});
-
-			const resource = createAudioResource(stream, {
-				inputType: StreamType.Opus,
-			});
-			this.player.play(resource);
-		} catch (error) {
-			console.error(error);
-			await this.messagePlayer.edit({
-				content: `Ocurrió un error al reproducir la canción: ${error.message}`,
-			});
-		}
-	}
-
-	public pause() {
-		this.player.pause();
-	}
-
-	public resume() {
-		this.player.unpause();
-	}
-
-	public stop() {
-		this.connection.destroy();
-		this.player.removeAllListeners();
-		this.player.stop();
-		this.messagePlayer.delete();
-		MusicClient.destroy();
-	}
-
-	public static destroy() {
-		this.client = null;
-	}
-
-	public skip(): boolean {
-		const nextSong = this.queue[1];
-		if (!nextSong) {
-			this.stop();
-			return false;
-		}
-		this.deleteSong(this.currentSong);
-		this.currentSong = nextSong;
-		this.messagePlayer.edit(this.generatePlayer());
-		this.play(nextSong);
-		return true;
-	}
-
-	public async addSong(
-		song: VideoSearchResult,
-		isCurrent: boolean = true
-	): Promise<Message<true>> {
-		try {
-			if (!this.queue) this.queue = [];
-
-			if (isCurrent === null || isCurrent) {
-				this.queue.unshift(song);
-				this.currentSong = song;
-				this.play(song);
-			} else {
-				this.queue.push(song);
-			}
-
-			if (!this.messagePlayer?.inGuild()) {
-				return null;
-			}
-
-			return this.messagePlayer;
-		} catch (error) {
-			console.error(error);
-			return null;
-		}
-	}
-
-	public deleteSong(song: VideoSearchResult): boolean {
-		try {
-			const songIndex = this.queue.findIndex((s) => s.videoId === song.videoId);
-			if (songIndex === -1) {
-				return false;
-			}
-			this.queue.splice(songIndex, 1);
-			return true;
-		} catch (error) {
-			console.error(error);
-			return false;
-		}
 	}
 }

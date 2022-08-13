@@ -1,17 +1,17 @@
 import { Action } from '../../structures/Action';
-import MusicClient from '../../structures/MusicClient';
 import { getLyrics, getSong } from 'genius-lyrics-api';
 import { MessageEmbed } from 'discord.js';
 
 export default new Action({
 	id: 'MUSIC_SHOWLYRICS',
-	run: async ({ interaction }) => {
+	run: async ({ client, interaction }) => {
 		try {
-			const currentSong = MusicClient.getInstance().getCurrentSong();
+			const currentSong = client.distube.queues.get(process.env.GUILD_ID)
+				.songs[0];
 			const geniusOptions = {
 				apiKey: process.env.GENIUS_LYRICS_API_KEY,
-				title: currentSong.title,
-				artist: currentSong.author,
+				title: currentSong.name,
+				artist: currentSong.user,
 				optimizeQuery: true,
 			};
 			const lyrics = await getLyrics(geniusOptions);
@@ -19,7 +19,7 @@ export default new Action({
 				const lyricsEmbed = new MessageEmbed()
 					.setAuthor('Letra de la canción')
 					.setThumbnail(currentSong.thumbnail)
-					.setTitle(currentSong.title)
+					.setTitle(currentSong.name)
 					.setDescription(lyrics);
 				await interaction.channel.send({ embeds: [lyricsEmbed] });
 				await interaction.deferUpdate();

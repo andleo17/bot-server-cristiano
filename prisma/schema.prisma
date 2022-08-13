@@ -11,9 +11,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model MusicConfig {
-  id        String @id @default(dbgenerated()) @map("_id") @db.ObjectId
-  channelId String
-
-  @@map("music")
+model GuildConfig {
+  id               String   @id @default(dbgenerated()) @map("_id") @db.ObjectId
+  guildId          String   @unique
+  musicChannel     String
+  eightBallAnswers String[]
 }

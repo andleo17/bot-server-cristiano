@@ -12,19 +12,17 @@ export default new Command({
 			required: true,
 		},
 	],
+	userPermissions: ['ADMINISTRATOR'],
 	run: async ({ client, interaction }) => {
 		try {
 			await interaction.deferReply({ ephemeral: true });
 			const channel = interaction.options.getChannel('canal', true);
-			const existMusicChannel = await client.db.musicConfig.findFirst();
-			if (existMusicChannel) {
-				await client.db.musicConfig.update({
-					data: { channelId: channel.id },
-					where: { id: existMusicChannel.id },
-				});
-			} else {
-				await client.db.musicConfig.create({ data: { channelId: channel.id } });
-			}
+
+			await client.db.guildConfig.upsert({
+				where: { guildId: interaction.guildId },
+				create: { guildId: interaction.guildId, musicChannel: channel.id },
+				update: { musicChannel: channel.id },
+			});
 
 			await interaction.editReply({
 				content: 'Canal configurado correctamente',

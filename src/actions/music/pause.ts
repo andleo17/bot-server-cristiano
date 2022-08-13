@@ -1,10 +1,9 @@
 import { MessageButton } from 'discord.js';
 import { Action } from '../../structures/Action';
-import MusicClient from '../../structures/MusicClient';
 
 export default new Action({
 	id: 'MUSIC_PAUSE',
-	run: ({ interaction }) => {
+	run: ({ client, interaction }) => {
 		try {
 			const playerRow = interaction.message.components[0];
 			const pauseButton = new MessageButton()
@@ -14,7 +13,7 @@ export default new Action({
 
 			const newPlayerRow = playerRow.spliceComponents(0, 1, pauseButton);
 
-			MusicClient.getInstance().pause();
+			client.distube.pause(process.env.GUILD_ID);
 
 			interaction.update({
 				embeds: interaction.message.embeds,
